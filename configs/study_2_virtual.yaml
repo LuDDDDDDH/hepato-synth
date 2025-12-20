@@ -1,0 +1,112 @@
+# ==============================================================================
+# Configuration for Study 2: Cross-Modality Virtual Imaging
+# Task: Synthesize virtual Hepatobiliary Phase (vHBP) from standard Gd-DTPA scans.
+# This is an Unpaired Image-to-Image Translation task.
+# Inherits from: base_config.yaml
+# ==============================================================================
+
+# Inherit all base settings (paths, hardware, etc.)
+defaults:
+  - base_config
+
+# Override experiment description
+experiment_description: "Study 2: Disentangled Virtual HBP Synthesis (CycleGAN-like)"
+
+# ------------------------------------------------------------------------------
+# 1. Data Specifics for Study 2 (Unpaired Domains)
+# ------------------------------------------------------------------------------
+data:
+  # This study uses two separate, unpaired cohorts.
+  # We define them as Domain A and Domain B.
+  domain_A: # The source domain: standard contrast (Gd-DTPA)
+    cohort_name: "cohort-B" # Unpaired Gd-DTPA dataset (N>=1000)
+    input_modalities:
+      - "T1w_precontrast"
+      - "T1w_arterial"
+      - "T1w_portal"
+      - "T1w_equilibrium"
+      - "phys_Ktrans" # Physical map derived from Gd-DTPA
+      - "phys_ve"     # Physical map derived from Gd-DTPA
+
+  domain_B: # The target domain: hepatobiliary phase (Gd-EOB-DTPA)
+    cohort_name: "cohort-A" # We reuse Cohort A, but only use the HBP images
+    target_modality: "T1w_hbp"
+
+# ------------------------------------------------------------------------------
+# 2. Model Configuration: Disentangled Swin-DRIT++
+# ------------------------------------------------------------------------------
+model:
+  name: "DisentangledDRIT"
+  
+  # The model consists of several sub-networks
+  content_encoder:
+    # We use the pre-trained encoder from Study 1 as the content encoder.
+    # This is the core of our "unified backbone" strategy.
+    name: "SwinUNETR_Encoder"
+    in_channels: 6 # Gd-DTPA + physical maps
+    img_size: [96, 96, 96]
+    feature_size: 48
+    depths: [2, 2, 2, 2]
+    num_heads: [3, 6, 12, 24]
+    # Path to the encoder weights saved from the best Study 1 model
+    pretrained_weights_path: "./outputs/study_1_acceleration/checkpoints/best_encoder.pth"
+    # Freeze the content encoder initially to provide a stable feature space
+    freeze_weights: True 
+
+  style_encoder:
+    # A lightweight CNN to extract the "style" (i.e., functional HBP features)
+    name: "LightweightStyleEncoder"
+    in_channels: 1 # Only takes the HBP image
+    style_dim: 8   # The dimension of the latent style code
+
+  generator:
+    # The generator combines content and style to synthesize the image
+    name: "DecoderGenerator"
+    # It will use the decoder part of the Swin UNETR architecture
+    # Hyperparameters should match the content_encoder
+    
+  discriminator:
+    # PatchGAN discriminator to distinguish real vs. fake images in each domain
+    name: "PatchGANDiscriminator"
+    in_channels: 1
+    num_layers: 4
+
+# ------------------------------------------------------------------------------
+# 3. Training Strategy for GANs
+# ------------------------------------------------------------------------------
+training:
+  # Training GANs often requires more epochs
+  epochs: 300
+  
+  # Number of epochs to keep the learning rate constant before decaying
+  epoch_decay_start: 150 
+  
+  batch_size: 1 # GANs are memory-intensive, often use batch size of 1
+
+  # We need separate optimizers for generators and discriminators
+  optimizer_G:
+    name: "AdamW"
+    learning_rate: 0.0002
+    betas: [0.5, 0.999] # Betas commonly used in GAN training
+  
+  optimizer_D:
+    name: "AdamW"
+    learning_rate: 0.0002
+    betas: [0.5, 0.999]
+
+  lr_scheduler:
+    name: "LinearLR" # Linearly decay learning rate to zero
+    start_epoch: 150 # Start decaying after this epoch
+    total_epochs: 300
+    
+  # The loss function is a complex combination for CycleGAN-like models
+  loss:
+    components:
+      - name: "AdversarialLoss" # GAN loss (e.g., LSGAN)
+        weight: 1.0
+      - name: "CycleConsistencyLoss" # L1 loss for cycle consistency
+        weight: 10.0 # Typically has a higher weight
+      - name: "IdentityLoss" # Ensures generator doesn't change images from target domain
+        weight: 5.0
+      - name: "ContentPerceptualLoss" # Loss to enforce content preservation
+        weight: 1.0

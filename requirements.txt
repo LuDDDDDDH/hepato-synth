@@ -1,0 +1,65 @@
+# ==============================================================================
+# Python Dependencies for Hepato-Synth Project
+# ==============================================================================
+#
+# To install all dependencies, run the following command in your virtual environment:
+# pip install -r requirements.txt
+#
+# Note: This file is configured for a system with an NVIDIA GPU and CUDA 11.8.
+# Please adjust torch, torchvision, and cupy versions according to your CUDA version.
+# You can check your CUDA version by running `nvcc --version` in your terminal.
+
+# --- Core Deep Learning Frameworks ---
+# PyTorch: The main deep learning framework. Version 2.1.0 is a stable release.
+torch==2.1.0+cu118
+torchvision==0.16.0+cu118
+torchaudio==2.1.0+cu118
+# MONAI: The domain-specific framework for medical imaging.
+monai==1.3.0
+
+# --- GPU-accelerated Computing ---
+# CuPy: NumPy/SciPy-compatible array library for GPU-accelerated computing.
+# Essential for the perfusion_modeling module.
+cupy-cuda11x==12.2.0
+
+# --- Medical Image Processing ---
+# ANTsPy: For advanced non-rigid image registration.
+antspyx==0.4.2
+# SimpleITK: For general image I/O, filtering, and processing.
+SimpleITK==2.3.1
+# pydicom: For reading and parsing DICOM metadata.
+pydicom==2.4.4
+# dicom2nifti: For converting DICOM series to NIfTI format.
+dicom2nifti==2.4.9
+
+# --- Scientific Computing & Data Handling ---
+# NumPy: Fundamental package for scientific computing.
+numpy==1.26.2
+# SciPy: For scientific and technical computing (used in perfusion modeling).
+scipy==1.11.4
+# Pandas: For data analysis and manipulation (e.g., handling evaluation reports).
+pandas==2.1.4
+
+# --- Configuration & Utilities ---
+# PyYAML: For parsing the YAML configuration files.
+PyYAML==6.0.1
+# tqdm: For displaying smart progress bars in loops.
+tqdm==4.66.1
+
+# --- Experiment Tracking & Logging ---
+# Weights & Biases: For experiment tracking and visualization.
+wandb==0.16.1
+# TensorBoard: An alternative for experiment tracking.
+tensorboard==2.15.1
+
+# --- Metrics & Visualization ---
+# torchmetrics: For efficient computation of metrics like PSNR and SSIM.
+torchmetrics==1.2.1
+# matplotlib: For creating static, animated, and interactive visualizations.
+matplotlib==3.8.2
+# scikit-learn: Often used for computing metrics like AUC, though MONAI also provides it.
+scikit-learn==1.3.2
+
+# --- Jupyter Notebook Environment (for notebooks/) ---
+# jupyterlab: For running the exploratory data analysis notebooks.
+jupyterlab==4.0.9

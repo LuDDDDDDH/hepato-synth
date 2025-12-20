@@ -1,0 +1,85 @@
+# ==============================================================================
+# Configuration for Study 1: Same-Modality Accelerated Imaging
+# Task: Synthesize Hepatobiliary Phase (HBP) from early Gd-EOB-DTPA phases.
+# Inherits from: base_config.yaml
+# ==============================================================================
+
+# Define which base config file to inherit from.
+# Our script will first load the base, then merge this file on top.
+defaults:
+  - base_config
+
+# Override experiment description
+experiment_description: "Study 1: Physics-Informed HBP Synthesis (Acceleration)"
+
+# ------------------------------------------------------------------------------
+# 1. Data Specifics for Study 1
+# ------------------------------------------------------------------------------
+data:
+  # Specify the cohort to use for this study
+  cohort_name: "cohort-A" # Paired Gd-EOB-DTPA dataset (N>=500)
+  
+  # Define the input channels for the model
+  # These correspond to the file names/suffixes in the BIDS structure
+  input_modalities:
+    - "T1w_precontrast"
+    - "T1w_arterial"
+    - "T1w_portal"
+    - "T1w_equilibrium"
+    - "phys_Ktrans" # Physical parameter map
+    - "phys_ve"     # Physical parameter map
+  
+  # Define the target channel for the model to generate
+  target_modality: "T1w_hbp"
+
+# ------------------------------------------------------------------------------
+# 2. Model Configuration: Physics-Informed Swin UNETR
+# ------------------------------------------------------------------------------
+model:
+  # Name of the model architecture to load
+  name: "PhysicsInformedSwinUNETR"
+  
+  # Model hyperparameters
+  in_channels: 6 # Must match the number of input_modalities
+  out_channels: 1 # We are generating a single HBP image
+  img_size: [96, 96, 96] # Must match patch_size
+  feature_size: 48
+  depths: [2, 2, 2, 2]
+  num_heads: [3, 6, 12, 24]
+  
+  # Use pre-trained weights from MONAI Model Zoo (e.g., trained on MSD)
+  # Set to "none" for random initialization
+  pretrained_weights_path: "path/to/monai/pretrained/swin_unetr.pth"
+
+# ------------------------------------------------------------------------------
+# 3. Training Strategy
+# ------------------------------------------------------------------------------
+training:
+  # Total number of training epochs
+  epochs: 200
+  
+  # Batch size
+  batch_size: 2
+
+  # Optimizer settings
+  optimizer:
+    name: "AdamW"
+    learning_rate: 0.0001
+    weight_decay: 0.00001
+  
+  # Learning rate scheduler
+  lr_scheduler:
+    name: "CosineAnnealingLR"
+    T_max: 200 # Corresponds to the total number of epochs
+    eta_min: 0.000001
+
+  # Loss function configuration
+  loss:
+    # We use a combination of losses
+    components:
+      - name: "L1Loss"
+        weight: 1.0 # The primary pixel-wise loss
+      - name: "SSIMLoss" # Structural Similarity Index Loss
+        weight: 0.5
+      - name: "PhysicsConsistencyLoss" # Custom loss defined in our codebase
+        weight: 0.2 # Weight for the physics-based regularization

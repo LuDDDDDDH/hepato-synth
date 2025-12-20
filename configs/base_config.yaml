@@ -1,0 +1,72 @@
+# ==============================================================================
+# Base Configuration for Hepato-Synth Project
+# All other study-specific configs will inherit from this file.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Project & Experiment Metadata
+# ------------------------------------------------------------------------------
+project_name: "Hepato-Synth"
+author: "Your Name"
+experiment_description: "Base configuration file."
+timestamp: Null # Will be filled automatically at runtime
+
+# ------------------------------------------------------------------------------
+# 2. Path Configurations
+# (Paths should be absolute or relative to the project root)
+# ------------------------------------------------------------------------------
+# Raw data root, following a BIDS-like structure
+# e.g., /path/to/data/cohort-A/sub-001/ses-01/...
+data_root: "/path/to/your/liver_mri_dataset"
+
+# Where all outputs (logs, checkpoints, generated images) will be saved
+output_root: "./outputs" 
+
+# Pre-processed data will be stored here to avoid re-computation
+preprocessed_data_root: "/path/to/your/preprocessed_data"
+
+# ------------------------------------------------------------------------------
+# 3. Hardware & Environment Settings
+# ------------------------------------------------------------------------------
+# Set to -1 for CPU, or specify GPU device IDs, e.g., [0, 1]
+gpu_ids: [0]
+
+# Number of parallel workers for data loading
+num_workers: 8
+
+# Use mixed precision training (float16) to speed up and save memory
+# Highly recommended for Transformer models on NVIDIA Ampere GPUs (A100) or newer
+use_mixed_precision: True
+
+# For reproducibility
+random_seed: 42
+
+# ------------------------------------------------------------------------------
+# 4. Data Preprocessing Parameters (Shared across studies)
+# ------------------------------------------------------------------------------
+data_preprocessing:
+  # Target spatial resolution to resample all images to (in mm)
+  target_spacing: [1.5, 1.5, 3.0] 
+
+  # Intensity normalization method
+  # Options: "z_score", "rescale_0_1", "hist_match", "reference_tissue"
+  normalization_method: "reference_tissue"
+  reference_tissue_mask_label: "spleen" # Label for the reference tissue in the segmentation mask
+
+  # Patch/Crop settings for training
+  # We train on 3D patches to fit into GPU memory
+  patch_size: [96, 96, 96]
+  
+  # Number of samples (patches) to extract from each 3D volume per epoch
+  samples_per_volume: 4
+
+# ------------------------------------------------------------------------------
+# 5. Logging & Visualization
+# ------------------------------------------------------------------------------
+logging:
+  # Use Weights & Biases (wandb) or TensorBoard for experiment tracking
+  # Options: "wandb", "tensorboard", "none"
+  logger: "wandb"
+  
+  # Log image samples every N epochs during training
+  log_image_freq: 10
